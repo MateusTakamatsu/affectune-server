@@ -41,9 +41,10 @@ Pré-requisito: Python 3.12, a versão testada. O FFmpeg é opcional, porque o p
 2. Crie e ative um ambiente virtual:
    - Windows (PowerShell):
      ```
-     python -m venv .venv
+     py -3.12 -m venv .venv
      .venv\Scripts\Activate.ps1
      ```
+     Se o PowerShell bloquear a ativação, rode antes `Set-ExecutionPolicy -Scope Process Bypass`. Use `py -3.12` em vez de `python`, que no Windows pode abrir a Microsoft Store.
    - Linux/macOS:
      ```
      python3 -m venv .venv
