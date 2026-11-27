@@ -1,6 +1,15 @@
+# venv
 .venv
 venv
-core/__pycache__
-output/*
-oasis/images/*
+
+# pycache
 __pycache__
+core/__pycache__
+
+# Peristence
+affectune.db
+*/affectune.db
+output/*
+
+# Oasies mage packages
+oasis/images/*

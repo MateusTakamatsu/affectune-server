@@ -1,7 +1,7 @@
 from pathlib import Path
 import gradio as gr
 from core.orquestrador import executar_pipeline
-from database import (
+from database.database import (
     inicializar_banco,
     criar_usuario,
     autenticar_usuario,
@@ -111,7 +111,7 @@ tema = gr.themes.Soft(
     button_large_radius="999px",
 )
 
-css_enxuto = (BASE_DIR / "styles.css").read_text(encoding="utf-8")
+css_enxuto = (BASE_DIR / "style" / "styles.css").read_text(encoding="utf-8")
 
 blocks_kwargs = {"title": "Affectune"}
 launch_kwargs = {
