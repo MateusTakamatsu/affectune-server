@@ -1,0 +1,6 @@
+# Versões testadas em 27/11/2026 (Python 3.12, Windows 10)
+librosa==1.0.1
+gradio==6.32.0
+matplotlib==3.11.2
+# Fornece o FFmpeg caso ele não esteja instalado no sistema (PATH)
+imageio-ffmpeg==0.8.2
