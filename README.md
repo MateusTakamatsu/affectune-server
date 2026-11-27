@@ -6,8 +6,8 @@ Projeto da disciplina Projeto em Engenharia da Computação I, do curso de Engen
 
 ## 👥 Integrantes
 
-- **Luiz Thiago Gonçalves Cassab:** documentação (requisitos, artigo INIC e apresentação) e curadoria e filtragem do conjunto de imagens OASIS.
-- **Mateus Machado Takamatsu:** desenvolvimento do sistema (pipeline de processamento, interface Gradio e banco SQLite).
+- **Luiz Thiago Gonçalves Cassab**
+- **Mateus Machado Takamatsu**
 
 ## 📌 Descrição
 
