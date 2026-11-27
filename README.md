@@ -6,8 +6,8 @@ Projeto da disciplina Projeto em Engenharia da Computação I, do curso de Engen
 
 ## 👥 Integrantes
 
-- **Luiz Thiago Gonçalves Cassab**
-- **Mateus Machado Takamatsu**
+- **Luiz Thiago Gonçalves Cassab** (RA: 02310050)
+- **Mateus Machado Takamatsu** (RA: 02310341)
 
 ## 📌 Descrição
 
