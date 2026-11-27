@@ -1,24 +1,87 @@
 from pathlib import Path
 import gradio as gr
 from core.orquestrador import executar_pipeline
+from database import (
+    inicializar_banco,
+    criar_usuario,
+    autenticar_usuario,
+    calcular_hash_audio,
+    buscar_video_cache,
+    salvar_video_cache,
+)
 
 BASE_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = BASE_DIR / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
 FAVICON_PATH = BASE_DIR / "assets" / "feeling.png"
+CACHE_VIDEOS_DIR = OUTPUT_DIR / "cache"
+CACHE_VIDEOS_DIR.mkdir(parents=True, exist_ok=True)
+
+inicializar_banco()
 
 
-def processar_audio(caminho_audio, progress=gr.Progress()):
+def fazer_login(username, senha):
+    if not username or not senha:
+        gr.Warning("Preencha usuário e senha.")
+        return None, gr.update(visible=True), gr.update(visible=False), ""
+
+    if autenticar_usuario(username, senha):
+        user_limpo = username.strip().lower()
+        return (
+            user_limpo,
+            gr.update(visible=False),  # Esconde tela de login
+            gr.update(visible=True),   # Mostra o Affectune
+            f"👤 Conectado como **{user_limpo}**",
+        )
+
+    gr.Warning("Usuário ou senha incorretos.")
+    return None, gr.update(visible=True), gr.update(visible=False), ""
+
+
+def registrar_usuario(novo_user, nova_senha, confirma_senha):
+    if nova_senha != confirma_senha:
+        gr.Warning("As senhas não coincidem.")
+        return "", "", ""
+
+    sucesso, mensagem = criar_usuario(novo_user, nova_senha)
+    if sucesso:
+        gr.Info(mensagem)
+        return "", "", ""
+    else:
+        gr.Warning(mensagem)
+        return novo_user, "", ""
+
+
+def fazer_logout():
+    return None, gr.update(visible=True), gr.update(visible=False), None, None
+
+
+def processar_audio(caminho_audio, usuario_atual, progress=gr.Progress()):
+    if not usuario_atual:
+        raise gr.Error("Sessão expirada. Faça login novamente.")
     if not caminho_audio:
         gr.Warning("Envie um arquivo de áudio antes de gerar o vídeo.")
         return None
 
     try:
-        progress(0.2, desc="Extraindo métricas e selecionando cenas...")
+        progress(0.1, desc="Verificando assinatura do áudio...")
+        audio_hash = calcular_hash_audio(caminho_audio)
+
+        video_em_cache = buscar_video_cache(audio_hash)
+        if video_em_cache:
+            progress(1.0, desc="Vídeo recuperado do cache!")
+            gr.Info("Áudio já processado anteriormente. Vídeo carregado instantaneamente!")
+            return video_em_cache
+
+        # Passando apenas pasta_saida, o orquestrador usa o nome original do áudio
+        progress(0.25, desc="Extraindo métricas e selecionando cenas...")
         caminho_video = executar_pipeline(
             caminho_mp3=caminho_audio,
             pasta_saida=OUTPUT_DIR,
         )
+
+        # Grava no SQLite: audio_hash -> "output/Nome da Musica.mp4"
+        salvar_video_cache(audio_hash, caminho_video)
         progress(1.0, desc="Concluído!")
         return caminho_video
     except Exception as e:
@@ -52,8 +115,6 @@ css_enxuto = (BASE_DIR / "styles.css").read_text(encoding="utf-8")
 
 blocks_kwargs = {"title": "Affectune"}
 launch_kwargs = {
-    "auth": ("admin", "1234"),
-    "auth_message": "Olá! Faça login com seu usuário e senha para acessar o Affectune.",
     "allowed_paths": [str(OUTPUT_DIR)],
     "favicon_path": str(FAVICON_PATH),
 }
@@ -65,6 +126,8 @@ else:
 
 
 with gr.Blocks(**blocks_kwargs) as app:
+    usuario_logado = gr.State(None)
+
     gr.Markdown(
         """
         # ☀️❄️ Affectune 🔥🌊
@@ -73,40 +136,80 @@ with gr.Blocks(**blocks_kwargs) as app:
         elem_classes=["hero-header"],
     )
 
-    # min_width = 300 para as colunas ficarem lado a lado
-    with gr.Row(equal_height=True):
-        with gr.Column(scale=1, min_width=300, variant="panel"):
-            gr.Markdown(
-                """
-                ### 🎵 1. Sua música
-                Arraste um arquivo de áudio com a sua música.
-                """
-            )
-            audio_input = gr.Audio(
-                sources=["upload"],
-                type="filepath",
-                label="Arquivo de música",
-            )
-            btn_enviar = gr.Button(
-                "✨ Gerar vídeo",
-                variant="primary",
-                size="lg",
-            )
+    # --- TELA 1: LOGIN E CADASTRO ---
+    with gr.Column(visible=True) as tela_auth:
+        with gr.Row():
+            gr.Column(scale=1)  # Espaçador esquerdo para centralizar
+            with gr.Column(scale=2, min_width=320, variant="panel"):
+                with gr.Tabs():
+                    with gr.Tab("🔑 Entrar"):
+                        login_user = gr.Textbox(label="Usuário", placeholder="seu_usuario")
+                        login_pass = gr.Textbox(label="Senha", type="password", placeholder="••••••••")
+                        btn_login = gr.Button("Entrar", variant="primary", size="lg")
 
-        with gr.Column(scale=1, min_width=300, variant="panel"):
-            gr.Markdown(
-                """
-                ### 🎬 2. Seu vídeo
-                Assim que ficar pronto, assista ou baixe o resultado abaixo.
-                """
-            )
-            video_output = gr.Video(
-                label="Vídeo sincronizado",
-            )
+                    with gr.Tab("✨ Criar conta"):
+                        reg_user = gr.Textbox(label="Novo usuário", placeholder="escolha_um_usuario")
+                        reg_pass = gr.Textbox(label="Senha", type="password", placeholder="mínimo 4 caracteres")
+                        reg_conf = gr.Textbox(label="Confirmar senha", type="password", placeholder="repita a senha")
+                        btn_registrar = gr.Button("Cadastrar", variant="primary", size="lg")
+            gr.Column(scale=1)  # Espaçador direito
 
+    # --- TELA 2: APLICAÇÃO PRINCIPAL ---
+    with gr.Column(visible=False) as tela_app:
+        with gr.Row():
+            lbl_usuario = gr.Markdown("")
+            btn_logout = gr.Button("Sair", size="sm", scale=0)
+
+        with gr.Row(equal_height=True):
+            with gr.Column(scale=1, min_width=300, variant="panel"):
+                gr.Markdown(
+                    """
+                    ### 🎵 1. Sua música
+                    Arraste um arquivo de áudio com a sua música.
+                    """
+                )
+                audio_input = gr.Audio(
+                    sources=["upload"],
+                    type="filepath",
+                    label="Arquivo de música",
+                )
+                btn_enviar = gr.Button(
+                    "✨ Gerar vídeo",
+                    variant="primary",
+                    size="lg",
+                )
+
+            with gr.Column(scale=1, min_width=300, variant="panel"):
+                gr.Markdown(
+                    """
+                    ### 🎬 2. Seu vídeo
+                    Assim que ficar pronto, assista ou baixe o resultado abaixo.
+                    """
+                )
+                video_output = gr.Video(
+                    label="Vídeo sincronizado",
+                )
+
+    # Eventos de Autenticação
+    btn_login.click(
+        fn=fazer_login,
+        inputs=[login_user, login_pass],
+        outputs=[usuario_logado, tela_auth, tela_app, lbl_usuario],
+    )
+    btn_registrar.click(
+        fn=registrar_usuario,
+        inputs=[reg_user, reg_pass, reg_conf],
+        outputs=[reg_user, reg_pass, reg_conf],
+    )
+    btn_logout.click(
+        fn=fazer_logout,
+        outputs=[usuario_logado, tela_auth, tela_app, audio_input, video_output],
+    )
+
+    # Evento Principal
     btn_enviar.click(
         fn=processar_audio,
-        inputs=audio_input,
+        inputs=[audio_input, usuario_logado],
         outputs=video_output,
     )
 

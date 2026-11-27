@@ -3,3 +3,4 @@ venv
 core/__pycache__
 output/*
 oasis/images/*
+__pycache__
