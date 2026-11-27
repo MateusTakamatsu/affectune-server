@@ -91,12 +91,9 @@ def _obter_ffmpeg() -> str:
     import imageio_ffmpeg
     return imageio_ffmpeg.get_ffmpeg_exe()
 
-
+    # Decodifica apenas o fluxo de áudio para PCM bruto (ignorando nome, capa e tags ID3)
+    # e retorna o SHA-256 do conteúdo sonoro.
 def calcular_hash_audio(caminho_audio: str | Path) -> str:
-    """
-    Decodifica apenas o fluxo de áudio para PCM bruto (ignorando nome, capa e tags ID3)
-    e retorna o SHA-256 do conteúdo sonoro.
-    """
     ffmpeg_exe = _obter_ffmpeg()
     sha256 = hashlib.sha256()
 
@@ -104,9 +101,9 @@ def calcular_hash_audio(caminho_audio: str | Path) -> str:
         ffmpeg_exe,
         "-v", "error",
         "-i", str(caminho_audio),
-        "-map", "0:a:0",  # Apenas o primeiro stream de áudio (ignora capas/imagens)
+        "-map", "0:a:0",
         "-vn",
-        "-f", "s16le",    # PCM 16-bit sem cabeçalho ou metadados
+        "-f", "s16le",
         "-ac", "1",
         "-ar", "22050",
         "-",
