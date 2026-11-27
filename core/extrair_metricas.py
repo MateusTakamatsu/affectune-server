@@ -12,10 +12,11 @@ def extrair_metricas_audio(caminho_mp3: str | Path) -> pd.DataFrame:
     y_harm, y_perc = librosa.effects.hpss(y)
 
     # --- MÉTRICAS DE BASE PARA ATIVAÇÃO ---
-    rms = librosa.feature.rms(y=y, hop_length=hop_length)[0]
-    centroid = librosa.feature.spectral_centroid(y=y, sr=sr, hop_length=hop_length)[0]
-    onset_env = librosa.onset.onset_strength(y=y_perc, sr=sr, hop_length=hop_length)
+    rms = librosa.feature.rms(y=y, hop_length=hop_length)[0] # RMS ("volume")
+    centroid = librosa.feature.spectral_centroid(y=y, sr=sr, hop_length=hop_length)[0] # Brilho
+    onset_env = librosa.onset.onset_strength(y=y_perc, sr=sr, hop_length=hop_length) # Ataques
 
+    # BPM
     janela = 50
     tempo_local = np.zeros(len(onset_env))
 
@@ -30,18 +31,19 @@ def extrair_metricas_audio(caminho_mp3: str | Path) -> pd.DataFrame:
         )[0]
 
     # --- MÉTRICAS DE BASE PARA VALÊNCIA ---
-    chroma = librosa.feature.chroma_cens(y=y_harm, sr=sr, hop_length=hop_length)
-    tonnetz = librosa.feature.tonnetz(y=y_harm, sr=sr, hop_length=hop_length)
-    contrast = librosa.feature.spectral_contrast(y=y_harm, sr=sr, hop_length=hop_length)
-    flatness = librosa.feature.spectral_flatness(y=y_harm, hop_length=hop_length)[0]
+    chroma = librosa.feature.chroma_cens(y=y_harm, sr=sr, hop_length=hop_length) # Cromagrama da faixa harmônica
+    tonnetz = librosa.feature.tonnetz(y=y_harm, sr=sr, hop_length=hop_length) # Terças e quintas
+    contrast = librosa.feature.spectral_contrast(y=y_harm, sr=sr, hop_length=hop_length) # Harmônicos definidos e ruído (picos e vales)
+    flatness = librosa.feature.spectral_flatness(y=y_harm, hop_length=hop_length)[0] # Proximidade de ser ruído branco
 
-    chroma_std = np.std(chroma, axis=0)
-    harmonic_change = np.linalg.norm(librosa.feature.delta(chroma), axis=0)
-    contrast_mean = np.mean(contrast, axis=0)
+    chroma_std = np.std(chroma, axis=0) # Desvio padrão entre as 12 notas
+    harmonic_change = np.linalg.norm(librosa.feature.delta(chroma), axis=0) # Velocidade da mudança de acordes ou notas
+    contrast_mean = np.mean(contrast, axis=0) # Média do contraste espectral
 
     series = [rms, centroid, onset_env, tempo_local, chroma_std, harmonic_change, contrast_mean, flatness]
     min_len = min(min(len(s) for s in series), tonnetz.shape[1])
 
+    # Ataques
     onset_frames = librosa.onset.onset_detect(onset_envelope=onset_env, sr=sr, hop_length=hop_length)
     onset_event = np.zeros(min_len)
     onset_event[onset_frames[onset_frames < min_len]] = 1

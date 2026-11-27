@@ -10,6 +10,7 @@ core/__pycache__
 affectune.db
 */affectune.db
 output/*
+!output/graphs
 
 # Oasies mage packages
 oasis/images/*

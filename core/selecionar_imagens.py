@@ -25,6 +25,8 @@ def selecionar_imagens(
     img_atual_idx = None
     inicio_bloco = 0
 
+    # Processo de escolha de imagens baseado na distância euclidiana
+    # entre os pontos de valência/ativação do áudio e das imagens
     for _, row in df_audio.iterrows():
         tempo = int(row["tempo_seg"])
         ponto_audio = np.array([row["valencia"], row["ativacao"]])
@@ -37,6 +39,7 @@ def selecionar_imagens(
             dist_atual = distancias[img_atual_idx]
             duracao_atual = tempo - inicio_bloco
 
+            # Condicoes de troca de imagem
             expirou_tempo = duracao_atual >= max_duracao_seg
             afastou_suficiente = (
                 dist_atual > raio_afastamento and duracao_atual >= min_duracao_seg

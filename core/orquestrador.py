@@ -37,6 +37,7 @@ def executar_pipeline(
     df_features = extrair_metricas_audio(caminho_mp3)
 
     print("[2/4] Calculando Valência e Ativação...")
+    # df_emocao = calcular_valencia_ativacao(df_features, exibir_grafico=False, caminho_salvar_grafico=Path(pasta_saida) / "graphs" / f"{nome_musica}_valencia_ativacao.png")
     df_emocao = calcular_valencia_ativacao(df_features, exibir_grafico=False)
 
     print("[3/4] Selecionando imagens compatíveis...")

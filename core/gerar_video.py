@@ -42,6 +42,7 @@ def _resolver_caminho_imagem(indice: dict[str, Path], img_id: str, theme: str) -
     )
 
 
+# Função principal para gerar o vídeo a partir do DataFrame guia, áudio e imagens
 def gerar_video_leve(
     df_guia: pd.DataFrame,
     caminho_mp3: str | Path,
@@ -61,6 +62,7 @@ def gerar_video_leve(
     linhas_concat = []
     ultimo_caminho = None
 
+    # Percorrer o guia de imagens e criar o arquivo de concatenação para o FFmpeg
     for _, row in df_guia.iterrows():
         caminho_img = _resolver_caminho_imagem(
             indice_imagens, row["img_id"], row["theme"]
@@ -82,6 +84,7 @@ def gerar_video_leve(
         tmp.write("\n".join(linhas_concat))
         caminho_lista_tmp = tmp.name
 
+    # Iniciar filtros e renderização do vídeo
     try:
         filtro_video = (
             f"scale={largura}:{altura}:force_original_aspect_ratio=decrease,"
